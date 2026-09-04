@@ -1,4 +1,4 @@
-#include <SDL3/SDL.h>
+/* #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include<vector>
 #include <cstdlib>   // rand(), srand()
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
     SDL_Quit();
 
     return 0;
-}
+}*/
 
 
 
