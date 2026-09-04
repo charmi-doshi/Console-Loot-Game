@@ -47,4 +47,45 @@ std::unordered_map<ItemType, SDL_Color> itemColors = {
 
 std::map<Cell, ItemType> world;
 std::map<ItemType, int> inventory;
-Cell
+Cell player;
+
+void seedWorld(std::map<Cell,ItemType>& world,const Cell& playerCell) {
+	world.clear();
+	int placed = 0;
+	while (placed < ITEM_COUNT) {
+		Cell c{ rand() % GRID_COLS,rand() % GRID_ROWS};
+		if (c == playerCell) continue;
+
+		if (world.find(c) != world.end()) continue;
+		world[c] = randomItem();
+		++placed;
+
+		Cell next = player;
+		switch (event.key.scancode) {
+		case SDL_SCANCODE_W: next.second -= 1; break;
+		case SDL_SCANCODE_S: next.second += 1; break;
+		case SDL_SCANCODE_A: next.first -= 1; break;
+		case SDL_SCANCODE_D: next.first += 1; break;
+		}
+
+		if (next.first < 0) next.first = 0;
+		if (next.first >= GRID_COLS)  next.first = GRID_COLS - 1;
+		if (next.second < 0)           next.second = 0;
+		if (next.second >= GRID_ROWS)  next.second = GRID_ROWS - 1;
+
+		player = next;
+
+		auto it = world.find(player);
+		if (it != world.end() ) {
+			ItemType picked = it->second;
+			inventory[picked] += 1;
+			world.erase(it);
+			SDL_Log("Picked up a %s  (have %d)",
+				itemName(picked), inventory[picked]);
+			
+			if (world.empty()) {
+				SDL_Log("All loot collected! Press R for a new world.");
+			}
+		}
+	}
+}
