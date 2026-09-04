@@ -10,8 +10,13 @@
 const int CELL_SIZE = 50;
 const int GRID_COLS = 16;
 const int GRID_ROWS = 12;
-const int SCREEN_W = CELL_SIZE * GRID_COLS;   // 800
-const int SCREEN_H = CELL_SIZE * GRID_ROWS;   // 600
+
+
+const int WORLD_W = CELL_SIZE * GRID_COLS;   // 800px Grid
+const int HUD_W = 250;                       // 250px Inventory Sidebar
+const int SCREEN_W = WORLD_W + HUD_W;        // 1050px Total Width
+const int SCREEN_H = CELL_SIZE * GRID_ROWS;   // 600px Total Height
+
 const int ITEM_COUNT = 20;
 
 enum class ItemType {
@@ -38,8 +43,6 @@ using Cell = std::pair<int, int>;
 ItemType randomItem() {
 	return static_cast<ItemType>(rand() % 5);
 }
-
-// Game palette
 std::unordered_map<ItemType, SDL_Color> itemColors = {
 	{ ItemType::Coin,   {230, 200,  50, 255} },   // gold
 	{ ItemType::Gem,    { 80, 220, 220, 255} },   // cyan
@@ -69,7 +72,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	SDL_Window* window = SDL_CreateWindow("Grid Loot Collector", SCREEN_W, SCREEN_H, 0);
+	SDL_Window* window = SDL_CreateWindow("Grid Loot Collector & HUD Showcase", SCREEN_W, SCREEN_H, 0);
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
 
 	if (!window || !renderer) {
@@ -87,9 +90,16 @@ int main(int argc, char* argv[]) {
 	bool running = true;
 	SDL_Event event;
 
-	// --- GAME LOOP ---
+	const ItemType allItems[] = {
+		ItemType::Coin,
+		ItemType::Gem,
+		ItemType::Key,
+		ItemType::Potion,
+		ItemType::Heart
+	};
+
 	while (running) {
-		// 1. INPUT PASS
+
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_EVENT_QUIT) {
 				running = false;
@@ -113,10 +123,8 @@ int main(int argc, char* argv[]) {
 						SDL_Log("(nothing yet)");
 					}
 					else {
-						for (const std::pair<const ItemType, int>& item : inventory) {
-							ItemType type = item.first;
-							int count = item.second;
-							SDL_Log("  %-7s x %d", itemName(type), count);
+						for (const auto& item : inventory) {
+							SDL_Log("  %-7s x %d", itemName(item.first), item.second);
 						}
 					}
 					SDL_Log("Items remaining in world: %d", (int)world.size());
@@ -125,7 +133,7 @@ int main(int argc, char* argv[]) {
 					break;
 				}
 
-				// Screen Boundary Clamping
+
 				if (next.first < 0) next.first = 0;
 				if (next.first >= GRID_COLS) next.first = GRID_COLS - 1;
 				if (next.second < 0) next.second = 0;
@@ -133,35 +141,28 @@ int main(int argc, char* argv[]) {
 
 				player = next;
 
-				// Loot Pickup Check
+	
 				auto it = world.find(player);
 				if (it != world.end()) {
 					ItemType picked = it->second;
 					inventory[picked] += 1;
 					world.erase(it);
 					SDL_Log("Picked up a %s (have %d)", itemName(picked), inventory[picked]);
-
-					if (world.empty()) {
-						SDL_Log("All loot collected! Press R for a new world.");
-					}
 				}
 			}
 		}
 
-		// 2. RENDER PASS
+		// render
 		SDL_SetRenderDrawColor(renderer, 20, 20, 25, 255);
 		SDL_RenderClear(renderer);
 
-		// Draw Grid Lines
 		SDL_SetRenderDrawColor(renderer, 45, 45, 55, 255);
 		for (int c = 0; c <= GRID_COLS; ++c) {
 			SDL_RenderLine(renderer, (float)(c * CELL_SIZE), 0.0f, (float)(c * CELL_SIZE), (float)SCREEN_H);
 		}
 		for (int r = 0; r <= GRID_ROWS; ++r) {
-			SDL_RenderLine(renderer, 0.0f, (float)(r * CELL_SIZE), (float)SCREEN_W, (float)(r * CELL_SIZE));
+			SDL_RenderLine(renderer, 0.0f, (float)(r * CELL_SIZE), (float)WORLD_W, (float)(r * CELL_SIZE));
 		}
-
-		// Draw Loot Items
 		for (const auto& entry : world) {
 			const Cell& cell = entry.first;
 			ItemType type = entry.second;
@@ -177,7 +178,6 @@ int main(int argc, char* argv[]) {
 			SDL_RenderFillRect(renderer, &r);
 		}
 
-		// Draw Player
 		SDL_SetRenderDrawColor(renderer, 80, 220, 100, 255);
 		SDL_FRect pRect = {
 			(float)(player.first * CELL_SIZE + 6),
@@ -187,10 +187,53 @@ int main(int argc, char* argv[]) {
 		};
 		SDL_RenderFillRect(renderer, &pRect);
 
+		SDL_SetRenderDrawColor(renderer, 30, 32, 42, 255);
+		SDL_FRect hudBg = { (float)WORLD_W, 0.0f, (float)HUD_W, (float)SCREEN_H };
+		SDL_RenderFillRect(renderer, &hudBg);
+
+
+		SDL_SetRenderDrawColor(renderer, 80, 85, 105, 255);
+		SDL_RenderLine(renderer, (float)WORLD_W, 0.0f, (float)WORLD_W, (float)SCREEN_H);
+
+
+		int startY = 30;
+		int rowHeight = 65;
+
+		for (int i = 0; i < 5; ++i) {
+			ItemType type = allItems[i];
+			SDL_Color col = itemColors[type];
+			int count = inventory[type];
+
+			float rowY = (float)(startY + i * rowHeight);
+
+			SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
+			SDL_FRect iconRect = { (float)(WORLD_W + 20), rowY, 28.0f, 28.0f };
+			SDL_RenderFillRect(renderer, &iconRect);
+
+			SDL_SetRenderDrawColor(renderer, 50, 55, 70, 255);
+			SDL_FRect barBg = { (float)(WORLD_W + 65), rowY + 6.0f, 150.0f, 16.0f };
+			SDL_RenderFillRect(renderer, &barBg);
+
+			if (count > 0) {
+				float fillWidth = (count / 10.0f) * 150.0f;
+				if (fillWidth > 150.0f) fillWidth = 150.0f;
+
+				SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
+				SDL_FRect barFill = { (float)(WORLD_W + 65), rowY + 6.0f, fillWidth, 16.0f };
+				SDL_RenderFillRect(renderer, &barFill);
+			}
+		}
+
+		if (world.empty()) {
+			SDL_SetRenderDrawColor(renderer, 40, 180, 90, 255);
+			SDL_FRect statusRect = { (float)(WORLD_W + 20), (float)(SCREEN_H - 80), 210.0f, 40.0f };
+			SDL_RenderFillRect(renderer, &statusRect);
+		}
+
 		SDL_RenderPresent(renderer);
 	}
 
-	// 3. CLEANUP PASS
+	// clean
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
