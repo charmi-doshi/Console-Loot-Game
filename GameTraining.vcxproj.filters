@@ -18,7 +18,7 @@
     <ClCompile Include="clickparticle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include=".cpp">
+    <ClCompile Include="LootGame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
