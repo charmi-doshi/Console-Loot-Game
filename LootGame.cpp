@@ -3,19 +3,19 @@
 #include <cstdlib>
 #include <ctime>
 #include <map>
+#include <string>
 #include <unordered_map>
-#include <utility>     
+#include <utility>
 #include <vector>
-#include<string>
 
 const int CELL_SIZE = 50;
 const int GRID_COLS = 16;
 const int GRID_ROWS = 12;
 
-
+// Layout Dimensions
 const int WORLD_W = CELL_SIZE * GRID_COLS;   // 800px Grid
-const int HUD_W = 250;                       // 250px Inventory Sidebar
-const int SCREEN_W = WORLD_W + HUD_W;        // 1050px Total Width
+const int HUD_W = 260;                       // 260px Inventory Sidebar
+const int SCREEN_W = WORLD_W + HUD_W;        // 1060px Total Width
 const int SCREEN_H = CELL_SIZE * GRID_ROWS;   // 600px Total Height
 
 const int ITEM_COUNT = 20;
@@ -44,13 +44,32 @@ using Cell = std::pair<int, int>;
 ItemType randomItem() {
 	return static_cast<ItemType>(rand() % 5);
 }
+
+// Fallback color palette
 std::unordered_map<ItemType, SDL_Color> itemColors = {
-	{ ItemType::Coin,   {230, 200,  50, 255} },   // gold
-	{ ItemType::Gem,    { 80, 220, 220, 255} },   // cyan
-	{ ItemType::Key,    {220, 220, 220, 255} },   // silver
-	{ ItemType::Potion, {180,  80, 220, 255} },   // purple
-	{ ItemType::Heart,  {230,  70,  90, 255} },   // red
+	{ ItemType::Coin,   {230, 200,  50, 255} },   // Gold
+	{ ItemType::Gem,    { 80, 220, 220, 255} },   // Cyan
+	{ ItemType::Key,    {220, 220, 220, 255} },   // Silver
+	{ ItemType::Potion, {180,  80, 220, 255} },   // Purple
+	{ ItemType::Heart,  {230,  70,  90, 255} },   // Red
 };
+
+//bmp loader
+SDL_Texture* loadBMP(const char* filepath, SDL_Renderer* renderer) {
+	SDL_Surface* surface = SDL_LoadBMP(filepath);
+	if (!surface) {
+		SDL_Log("Warning: Could not load %s! Using fallback graphics. Error: %s", filepath, SDL_GetError());
+		return nullptr;
+	}
+
+	// Treat pure Magenta (RGB 255, 0, 255) as transparent background
+	SDL_SetSurfaceColorKey(surface, true, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), nullptr, 255, 0, 255));
+
+	SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+	SDL_DestroySurface(surface); // Free CPU RAM memory
+	return texture;
+}
+
 //bitmap font renderer
 uint8_t getCharBitmap(char c, int row) {
 	if (c >= '0' && c <= '9') {
@@ -112,7 +131,7 @@ void drawText(SDL_Renderer* renderer, const std::string& text, float startX, flo
 
 	float cursorX = startX;
 	for (char c : text) {
-		if (c >= 'a' && c <= 'z') c -= 32; // Convert lower to upper case
+		if (c >= 'a' && c <= 'z') c -= 32;
 
 		for (int r = 0; r < 8; ++r) {
 			uint8_t rowBits = getCharBitmap(c, r);
@@ -158,7 +177,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	SDL_Window* window = SDL_CreateWindow("Grid Loot Inventory Showcase", SCREEN_W, SCREEN_H, 0);
+	SDL_Window* window = SDL_CreateWindow("Grid Loot BMP Showcase", SCREEN_W, SCREEN_H, 0);
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
 
 	if (!window || !renderer) {
@@ -166,6 +185,17 @@ int main(int argc, char* argv[]) {
 		SDL_Quit();
 		return -1;
 	}
+
+	//bmp images
+	SDL_Texture* playerTex = loadBMP("assets/player.bmp", renderer);
+
+	std::map<ItemType, SDL_Texture*> itemTextures = {
+		{ ItemType::Coin,   loadBMP("assets/coin.bmp", renderer) },
+		{ ItemType::Gem,    loadBMP("assets/gem.bmp", renderer) },
+		{ ItemType::Key,    loadBMP("assets/key.bmp", renderer) },
+		{ ItemType::Potion, loadBMP("assets/potion.bmp", renderer) },
+		{ ItemType::Heart,  loadBMP("assets/heart.bmp", renderer) }
+	};
 
 	std::map<Cell, ItemType> world;
 	std::map<ItemType, int> inventory;
@@ -184,6 +214,7 @@ int main(int argc, char* argv[]) {
 		ItemType::Potion,
 		ItemType::Heart
 	};
+
 
 	while (running) {
 
@@ -229,7 +260,7 @@ int main(int argc, char* argv[]) {
 		SDL_SetRenderDrawColor(renderer, 20, 20, 25, 255);
 		SDL_RenderClear(renderer);
 
-
+	
 		SDL_SetRenderDrawColor(renderer, 45, 45, 55, 255);
 		for (int c = 0; c <= GRID_COLS; ++c) {
 			SDL_RenderLine(renderer, (float)(c * CELL_SIZE), 0.0f, (float)(c * CELL_SIZE), (float)SCREEN_H);
@@ -238,31 +269,48 @@ int main(int argc, char* argv[]) {
 			SDL_RenderLine(renderer, 0.0f, (float)(r * CELL_SIZE), (float)WORLD_W, (float)(r * CELL_SIZE));
 		}
 
+	
 		for (const auto& entry : world) {
 			const Cell& cell = entry.first;
 			ItemType type = entry.second;
 
-			SDL_Color col = itemColors[type];
-			SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
 			SDL_FRect r = {
-				(float)(cell.first * CELL_SIZE + 12),
-				(float)(cell.second * CELL_SIZE + 12),
-				(float)(CELL_SIZE - 24),
-				(float)(CELL_SIZE - 24)
+				(float)(cell.first * CELL_SIZE + 10),
+				(float)(cell.second * CELL_SIZE + 10),
+				(float)(CELL_SIZE - 20),
+				(float)(CELL_SIZE - 20)
 			};
-			SDL_RenderFillRect(renderer, &r);
+
+			SDL_Texture* tex = itemTextures[type];
+			if (tex) {
+				SDL_RenderTexture(renderer, tex, NULL, &r);
+			}
+			else {
+	
+				SDL_Color col = itemColors[type];
+				SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
+				SDL_RenderFillRect(renderer, &r);
+			}
 		}
 
-		SDL_SetRenderDrawColor(renderer, 80, 220, 100, 255);
-		SDL_FRect pRect = {
-			(float)(player.first * CELL_SIZE + 6),
-			(float)(player.second * CELL_SIZE + 6),
-			(float)(CELL_SIZE - 12),
-			(float)(CELL_SIZE - 12)
-		};
-		SDL_RenderFillRect(renderer, &pRect);
 
-	
+		SDL_FRect pRect = {
+			(float)(player.first * CELL_SIZE + 5),
+			(float)(player.second * CELL_SIZE + 5),
+			(float)(CELL_SIZE - 10),
+			(float)(CELL_SIZE - 10)
+		};
+
+		if (playerTex) {
+			SDL_RenderTexture(renderer, playerTex, NULL, &pRect);
+		}
+		else {
+
+			SDL_SetRenderDrawColor(renderer, 80, 220, 100, 255);
+			SDL_RenderFillRect(renderer, &pRect);
+		}
+
+
 		SDL_SetRenderDrawColor(renderer, 30, 32, 42, 255);
 		SDL_FRect hudBg = { (float)WORLD_W, 0.0f, (float)HUD_W, (float)SCREEN_H };
 		SDL_RenderFillRect(renderer, &hudBg);
@@ -277,6 +325,7 @@ int main(int argc, char* argv[]) {
 		int startY = 70;
 		int rowHeight = 55;
 
+	
 		for (int i = 0; i < 5; ++i) {
 			ItemType type = allItems[i];
 			SDL_Color col = itemColors[type];
@@ -286,40 +335,45 @@ int main(int argc, char* argv[]) {
 
 			float rowY = (float)(startY + i * rowHeight);
 
-			SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
-			SDL_FRect iconRect = { (float)(WORLD_W + 20), rowY, 20.0f, 20.0f };
-			SDL_RenderFillRect(renderer, &iconRect);
+
+			SDL_FRect iconRect = { (float)(WORLD_W + 20), rowY, 24.0f, 24.0f };
+			SDL_Texture* hudTex = itemTextures[type];
+			if (hudTex) {
+				SDL_RenderTexture(renderer, hudTex, NULL, &iconRect);
+			}
+			else {
+				SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, col.a);
+				SDL_RenderFillRect(renderer, &iconRect);
+			}
 
 	
-			drawText(renderer, itemName(type), (float)(WORLD_W + 50), rowY + 2.0f, 2.0f, col);
+			drawText(renderer, itemName(type), (float)(WORLD_W + 55), rowY + 4.0f, 2.0f, col);
+
 
 			std::string countStr = std::to_string(count) + "/" + std::to_string(total);
-			drawText(renderer, countStr, (float)(WORLD_W + 160), rowY + 2.0f, 2.0f, { 200, 200, 200, 255 });
+			drawText(renderer, countStr, (float)(WORLD_W + 165), rowY + 4.0f, 2.0f, { 200, 200, 200, 255 });
 		}
 
-	
 		SDL_SetRenderDrawColor(renderer, 60, 65, 80, 255);
 		SDL_RenderLine(renderer, (float)(WORLD_W + 15), 365.0f, (float)(SCREEN_W - 15), 365.0f);
 
-	
+
 		std::string totalStr = "TOTAL: " + std::to_string(totalCollected) + "/" + std::to_string(ITEM_COUNT);
 		drawText(renderer, totalStr, (float)(WORLD_W + 20), 385.0f, 2.2f, { 255, 220, 100, 255 });
+
 
 		drawText(renderer, "WASD: MOVE", (float)(WORLD_W + 20), 450.0f, 1.8f, { 120, 120, 140, 255 });
 		drawText(renderer, "R: RESET WORLD", (float)(WORLD_W + 20), 475.0f, 1.8f, { 120, 120, 140, 255 });
 
 	
 		if (world.empty()) {
-
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 220);
 			SDL_FRect victoryBg = { 80.0f, (float)(SCREEN_H / 2 - 40), (float)(WORLD_W - 160), 80.0f };
 			SDL_RenderFillRect(renderer, &victoryBg);
 
-	
 			SDL_SetRenderDrawColor(renderer, 80, 220, 100, 255);
 			SDL_RenderRect(renderer, &victoryBg);
 
-			
 			drawText(renderer, "VICTORY!", 310.0f, (float)(SCREEN_H / 2 - 25), 3.5f, { 255, 215, 0, 255 });
 			drawText(renderer, "ALL ITEMS CLEARED!", 220.0f, (float)(SCREEN_H / 2 + 10), 2.2f, { 255, 255, 255, 255 });
 		}
@@ -327,7 +381,14 @@ int main(int argc, char* argv[]) {
 		SDL_RenderPresent(renderer);
 	}
 
-	// clean
+	// cleanup
+	SDL_DestroyTexture(playerTex);
+	for (auto& pair : itemTextures) {
+		if (pair.second) {
+			SDL_DestroyTexture(pair.second);
+		}
+	}
+
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();

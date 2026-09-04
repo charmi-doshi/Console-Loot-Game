@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="assets">
+      <UniqueIdentifier>{c054205f-429a-4a32-9dcd-50536141ce95}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="clickparticle.cpp">
@@ -21,5 +24,25 @@
     <ClCompile Include="LootGame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="C:\Users\Charmi\Downloads\coin.bmp">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="C:\Users\Charmi\Downloads\gem.bmp">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="C:\Users\Charmi\Downloads\potion.bmp">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="C:\Users\Charmi\Downloads\key.bmp">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="C:\Users\Charmi\Downloads\heart.bmp">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="C:\Users\Charmi\Downloads\player.bmp">
+      <Filter>assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>

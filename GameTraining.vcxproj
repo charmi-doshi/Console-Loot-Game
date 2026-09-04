@@ -147,6 +147,14 @@
     </ClCompile>
     <ClCompile Include="LootGame.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="C:\Users\Charmi\Downloads\gem.bmp" />
+    <Image Include="C:\Users\Charmi\Downloads\coin.bmp" />
+    <Image Include="C:\Users\Charmi\Downloads\heart.bmp" />
+    <Image Include="C:\Users\Charmi\Downloads\key.bmp" />
+    <Image Include="C:\Users\Charmi\Downloads\player.bmp" />
+    <Image Include="C:\Users\Charmi\Downloads\potion.bmp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
